@@ -8,10 +8,25 @@
   </style>
 </head>
 <body>
-  <div>
-    CoffeeTest is a dummy extension that emulates a basic auth flow and displays
-    the recording in DOM.
-  </div>
-  <button>log out</button>
-  <div id="recording"></div>
+  <p>
+    Run your Chrome DevTools Recordings on Google Cloud Run.
+  </p>
+  <form>
+    <p>In a terminal, run <code>gcloud auth print-access-token</code> and copy the token:</p>
+    <label for="name">Token:</label> <input name="token" id="token" required>
+    <p>Cloud Run job settings:</p>
+    <label for="project-id">Project ID:</label> <input name="project-id" id="project-id" required><br/>
+    <label for="region">Region:</label>
+    <select name="region" id="region" required>
+      <option value="us-central1" selected>us-central1</option>
+      <option value="us-east1">us-east1</option>
+      <option value="us-east4">us-east4</option>
+      <option value="europe-west1">europe-west1</option>
+      <option value="europe-west4">europe-west4</option>
+      <option value="asia-northeast1">asia-northeast1</option>
+      <option value="asia-southeast1">asia-southeast1</option>
+    </select><br/>
+    <label for="name">Name:</label> <input name="name" id="name" value="replay"><br/>
+    <input type=submit>
+  </form>
 </body>
