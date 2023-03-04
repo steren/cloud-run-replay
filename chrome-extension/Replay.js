@@ -1,3 +1,7 @@
+// URL of the pre-built replayer container.
+// TODO: update with a Google-managed container.
+const replayerImageURL = 'steren/chrome-replayer';
+
 chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
   localStorage.setItem('recording', request);
   main();
@@ -35,25 +39,82 @@ async function upload(token, project, recording) {
     },
   });
   log(`Uploaded`);
+  return `gs://${bucketName}/${filename}`;
 }
 
-async function build(token, project) {
-  log(`Building into container image...`);
-  log(`Built`);
-}
 
-async function create(token, project, region, name) {
+async function create(token, project, region, name, gcsUrl) {
   log(`Creating Cloud Run job ${name} in region ${region}...`);
-  log(`Created`);
+
+  // TODO: check if job already exists
+  const endpoint = `https://${region}-run.googleapis.com`;
+  const job = {
+    labels: {
+      'created-by': 'cloud-run-replay',
+    },
+    launchStage: 'BETA',
+    template: {
+      taskCount: 1,
+      template: {
+        containers: [
+          {
+            image: replayerImageURL,
+            args: [
+              gcsUrl
+            ],
+          }
+        ],
+      },
+    },
+  };
+  await fetch(`${endpoint}/v2/projects/${project}/locations/${region}/jobs?jobId=${name}`, {
+    method: 'POST',
+    body: JSON.stringify(job),
+    headers: {
+      'Content-Type': 'application/json',
+      'Authorization': `Bearer ${token}`,
+    },
+  });
+  // TODO: check response status
+
+  // Query every 1s until job is ready
+  let jobState;
+  while(jobState !== 'CONDITION_SUCCEEDED' && jobState !== 'CONDITION_FAILED') {
+    const response = await fetch(`${endpoint}/v2/projects/${project}/locations/${region}/jobs/${name}`, {
+      method: 'GET',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${token}`,
+      },
+    });
+    const job = await response.json();
+    jobState = job?.terminalCondition?.state;
+    log(`Waiting for job to be ready to execute...`);
+    await new Promise(resolve => setTimeout(resolve, 1000));
+  }
+
+  log(`Job is ready to execute`);
 }
 
 async function execute(token, project, region, name) {
   log(`Executing Cloud Run job ${name} in region ${region}...`);
-  log(`Executed`);
+  const endpoint = `https://${region}-run.googleapis.com`;
+
+  const response = await fetch(`${endpoint}/v2/projects/${project}/locations/${region}/jobs/${name}:run`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'Authorization': `Bearer ${token}`,
+    },
+  });
+
+  // TODO: check response status
+
+  log(`Job executed`);
 }
 
 async function main() {
-  document.querySelector('form').onsubmit = (event) => {
+  document.querySelector('form').onsubmit = async (event) => {
     event.preventDefault();
 
     const recording = JSON.parse(localStorage.getItem('recording'));
@@ -66,9 +127,8 @@ async function main() {
     const params = getFormData();
     log(`Deploying recording ${recording.title} to Cloud Run job ${params.name} in region ${params.region} and project ${params.project}`);
 
-    upload(params.token, params.project, recording);
-    build(params.token, params.project);
-    create(params.token, params.project, params.region, params.name);
-    execute(params.token, params.project, params.region, params.name);
+    const gcsUrl = await upload(params.token, params.project, recording);
+    await create(params.token, params.project, params.region, params.name, gcsUrl);
+    await execute(params.token, params.project, params.region, params.name);
   };
 }
