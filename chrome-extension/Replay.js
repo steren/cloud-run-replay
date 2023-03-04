@@ -25,10 +25,11 @@ function getFormData() {
   return Object.fromEntries(new FormData(document.querySelector('form')));
 }
 
-async function upload(token, project, recording) {
+async function upload(token, project, name, recording) {
   log(`Uploading to Google Cloud Storage...`);
   const bucketName = `${project}.appspot.com`;
-  const filename = 'recording.json';
+  const timestamp = new Date().toISOString().replace(/[^0-9]/g, '');
+  const filename = `chrome-recodrings/${name}/recording-${name}-${timestamp}.json`;
   const response = await fetch(`https://storage.googleapis.com/upload/storage/v1/b/${bucketName}/o?uploadType=media&name=${filename}`, {
     method: 'POST',
     body: JSON.stringify(recording),
@@ -163,7 +164,7 @@ async function main(recordingData) {
 
     log(`Deploying recording ${recording.title} to Cloud Run job ${params.name} in region ${params.region} and project ${params.project}`);
 
-    const gcsUrl = await upload(params.token, params.project, recording);
+    const gcsUrl = await upload(params.token, params.project, params.name, recording);
     await create(params.token, params.project, params.region, params.name, gcsUrl);
     await execute(params.token, params.project, params.region, params.name);
   };
