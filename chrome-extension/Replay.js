@@ -3,8 +3,7 @@
 const replayerImageURL = 'steren/chrome-replayer';
 
 chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
-  localStorage.setItem('recording', request);
-  main();
+  main(request);
 });
 
 function log(message) {
@@ -113,18 +112,55 @@ async function execute(token, project, region, name) {
   log(`Job executed`);
 }
 
-async function main() {
+
+function recordingTitleToJobName(title) {
+  return title.replace(/[^a-z0-9]/gi, '-').toLowerCase();
+}
+
+
+function loadFormDataFromLocalStorage(recording) {
+  const localToken = localStorage.getItem('token');
+  const localProject = localStorage.getItem('project');
+  const localRegion = localStorage.getItem('region');
+  const localRecordingProject = localStorage.getItem(`${recording.title} - project`);
+  const localRecordingName = localStorage.getItem(`${recording.title} - name`);
+  const localRecordingRegion = localStorage.getItem(`${recording.title} - region`);
+  if(localToken) {
+    document.querySelector('#token').value = localToken;
+  }
+  if(localRecordingProject || localProject) {
+    document.querySelector('#project').value = localRecordingProject || localProject;
+  }
+  document.querySelector('#name').value = localRecordingName || recordingTitleToJobName(recording.title);
+  if(localRecordingRegion || localRegion) {
+    document.querySelector('#region').value = localRecordingRegion || localRegion;
+  }
+}
+
+
+async function main(recordingData) {
+  const recording = JSON.parse(recordingData);
+  if(!recording) {
+    error('No recording passed');
+    return;
+  }
+
+  loadFormDataFromLocalStorage(recording);
+
   document.querySelector('form').onsubmit = async (event) => {
     event.preventDefault();
 
-    const recording = JSON.parse(localStorage.getItem('recording'));
-
-    if(!recording) {
-      error('No recording passed');
-      return;
-    }
-
     const params = getFormData();
+
+    // store params in a global local storage
+    localStorage.setItem('token', params.token);
+    localStorage.setItem('project', params.project);
+    localStorage.setItem('region', params.region);
+    // store params for this specific recording
+    localStorage.setItem(`${recording.title} - project`, params.project);
+    localStorage.setItem(`${recording.title} - name`, params.name);
+    localStorage.setItem(`${recording.title} - region`, params.region);
+
     log(`Deploying recording ${recording.title} to Cloud Run job ${params.name} in region ${params.region} and project ${params.project}`);
 
     const gcsUrl = await upload(params.token, params.project, recording);
