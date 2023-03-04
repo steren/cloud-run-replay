@@ -77,6 +77,8 @@ async function create(token, project, region, name, gcsUrl) {
   });
   // TODO: check response status
 
+  createLink(project, region, name);
+
   // Query every 1s until job is ready
   let jobState;
   while(jobState !== 'CONDITION_SUCCEEDED' && jobState !== 'CONDITION_FAILED') {
@@ -113,6 +115,13 @@ async function execute(token, project, region, name) {
   log(`Job executed`);
 }
 
+function createLink(project, region, name) {
+  const link = document.createElement('a');
+  link.href = `https://console.cloud.google.com/run/jobs/details/${region}/${name}/executions?project=${project}`;
+  link.target = '_blank';
+  link.textContent = 'Open in Cloud Console';
+  document.getElementById('link').appendChild(link);
+}
 
 function recordingTitleToJobName(title) {
   return title.replace(/[^a-z0-9]/gi, '-').toLowerCase();
@@ -165,7 +174,7 @@ async function main(recordingData) {
     log(`Deploying recording ${recording.title} to Cloud Run job ${params.name} in region ${params.region} and project ${params.project}`);
 
     const gcsUrl = await upload(params.token, params.project, params.name, recording);
-    await create(params.token, params.project, params.region, params.name, gcsUrl);
+    await create(params.token, params.project, params.region, params.name, gcsUrl);    
     await execute(params.token, params.project, params.region, params.name);
   };
 }
