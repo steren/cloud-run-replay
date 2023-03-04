@@ -1,0 +1,25 @@
+{
+    "name": "replayer",
+    "version": "1.0.0",
+    "description": "Replay recording.",
+    "main": "runner.js",
+    "scripts": {
+        "test": "echo \"Error: no test specified\" && exit 1"
+    },
+    "repository": {
+        "type": "git",
+        "url": "git+https://github.com/steren/cloud-run-replay.git"
+    },
+    "author": "Steren Giannini <steren@google.com>",
+    "license": "Apache-2.0",
+    "bugs": {
+        "url": "https://github.com/steren/cloud-run-replay/issues"
+    },
+    "homepage": "https://github.com/steren/cloud-run-replay/tree/main#readme",
+    "dependencies": {
+        "@google-cloud/storage": "^6.9.4",
+        "@puppeteer/replay": "^2.10.1",
+        "puppeteer": "^19.2.0"
+    },
+    "type": "module"
+}
