@@ -71,6 +71,7 @@ async function create(token, project, region, name, gcsUrl) {
       'created-by': 'cloud-run-replay',
     },
     launchStage: 'BETA',
+    client: 'chrome-devtools-extension',
     template: {
       taskCount: 1,
       template: {
