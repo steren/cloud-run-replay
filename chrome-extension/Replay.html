@@ -27,7 +27,7 @@
   <form>
     <fieldset>
       <legend>Cloud Run job settings:</legend>
-      <label for="project">Project ID:</label> <input name="project" id="project" required><br/>
+      <label for="project">Google Cloud project ID:</label> <input name="project" id="project" placeholder="my-gcp-project" required><br/>
       <label for="region">Region:</label>
       <select name="region" id="region" required>
         <option value="us-central1" selected>us-central1</option>
@@ -69,11 +69,11 @@
         <option value="australia-southeast2">australia-southeast2</option>
         <option value="me-west1">me-west1</option>
       </select><br/>
-      <label for="name">Name:</label> <input name="name" id="name" value="replay"><br/>
+      <label for="name">Job name:</label> <input name="name" id="name" value="replay" placeholder="replay"><br/>
     </fieldset>
     <fieldset>
       <legend>Authentication:</legend>
-      <label for="name">Access token:</label> <input name="token" id="token" required>
+      <label for="name">Access token:</label> <input name="token" id="token" placeholder="ya29.abcde1234...." required>
       <details>
         <summary>Get an access token</summary>
         <h3>Using the gcloud command line</h3>
