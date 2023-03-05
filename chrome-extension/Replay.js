@@ -6,11 +6,13 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
   main(request);
 });
 
-function log(message) {
+function log(message, severity) {
   console.log(message);
-  const li = document.createElement('li');
-  li.textContent = message;
-  document.getElementById('log').appendChild(li);
+  if(severity !== 'DEBUG') {
+    const li = document.createElement('li');
+    li.textContent = message;
+    document.getElementById('log').appendChild(li);
+  }
 }
 
 function error(message) {
@@ -21,12 +23,27 @@ function error(message) {
   document.getElementById('log').appendChild(li);
 }
 
+function createLink(project, region, name) {
+  const link = document.createElement('a');
+  link.href = `https://console.cloud.google.com/run/jobs/details/${region}/${name}/executions?project=${project}`;
+  link.target = '_blank';
+  link.textContent = 'Open in Cloud Console';
+  document.getElementById('link').appendChild(link);
+}
+
 function getFormData() {
   return Object.fromEntries(new FormData(document.querySelector('form')));
 }
 
+function getHeaders(token) {
+  return {
+    'Content-Type': 'application/json',
+    'Authorization': `Bearer ${token}`,
+  };
+}
+
 async function enableAPIs(token, project) {
-  log(`Enabling Cloud Storage and Cloud Run APIs...`);
+  log(`Making sure Cloud Storage and Cloud Run APIs are enabled...`);
   const apis = [
     'run.googleapis.com',
     'storage.googleapis.com',
@@ -34,13 +51,10 @@ async function enableAPIs(token, project) {
   for(const api of apis) {
     await fetch(`https://serviceusage.googleapis.com/v1/projects/${project}/services/${api}:enable`, {
       method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${token}`,
-      },
+      headers: getHeaders(token),
     });
   }
-  log(`Enabled`); 
+  log(`Enabled`, 'DEBUG'); 
 }
 
 async function upload(token, project, name, recording) {
@@ -51,22 +65,14 @@ async function upload(token, project, name, recording) {
   const response = await fetch(`https://storage.googleapis.com/upload/storage/v1/b/${bucketName}/o?uploadType=media&name=${filename}`, {
     method: 'POST',
     body: JSON.stringify(recording),
-    headers: {
-      'Content-Type': 'application/json',
-      'Authorization': `Bearer ${token}`,
-    },
+    headers: getHeaders(token),
   });
-  log(`Uploaded`);
+  log(`Uploaded`, 'DEBUG');
   return `gs://${bucketName}/${filename}`;
 }
 
-
-async function create(token, project, region, name, gcsUrl) {
-  log(`Creating Cloud Run job ${name} in region ${region}...`);
-
-  // TODO: check if job already exists
-  const endpoint = `https://${region}-run.googleapis.com`;
-  const job = {
+function getJobPayload(gcsUrl) {
+  return {
     labels: {
       'created-by': 'cloud-run-replay',
     },
@@ -86,60 +92,86 @@ async function create(token, project, region, name, gcsUrl) {
       },
     },
   };
-  await fetch(`${endpoint}/v2/projects/${project}/locations/${region}/jobs?jobId=${name}`, {
-    method: 'POST',
-    body: JSON.stringify(job),
-    headers: {
-      'Content-Type': 'application/json',
-      'Authorization': `Bearer ${token}`,
-    },
-  });
-  // TODO: check response status
+}
 
-  createLink(project, region, name);
-
-  // Query every 1s until job is ready
+/**
+ * Query the status of a Job and wait for its state to be Success or Failure.
+ */
+async function checkJobReady(token, project, region, name) {
+  log(`Waiting for job to be ready to execute...`, 'DEBUG');
   let jobState;
-  while(jobState !== 'CONDITION_SUCCEEDED' && jobState !== 'CONDITION_FAILED') {
-    const response = await fetch(`${endpoint}/v2/projects/${project}/locations/${region}/jobs/${name}`, {
+  while (jobState !== 'CONDITION_SUCCEEDED' && jobState !== 'CONDITION_FAILED') {
+    const response = await fetch(`https://${region}-run.googleapis.com/v2/projects/${project}/locations/${region}/jobs/${name}`, {
       method: 'GET',
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${token}`,
-      },
+      headers: getHeaders(token),
     });
     const job = await response.json();
     jobState = job?.terminalCondition?.state;
-    log(`Waiting for job to be ready to execute...`);
+    log('Not ready yet, waiting...', 'DEBUG');
     await new Promise(resolve => setTimeout(resolve, 1000));
+  };
+  log(`Job is ready to execute`, 'DEBUG');
+}
+
+async function create(token, project, region, name, gcsUrl) {
+  log(`Creating job ${name} in region ${region}...`, 'DEBUG');
+
+  return fetch(`https://${region}-run.googleapis.com/v2/projects/${project}/locations/${region}/jobs?jobId=${name}`, {
+    method: 'POST',
+    body: JSON.stringify(getJobPayload(gcsUrl)),
+    headers: getHeaders(token),
+  });
+}
+
+async function update(token, project, region, name, gcsUrl) {
+  log(`Updating Cloud Run job ${name} in region ${region}...`, 'DEBUG');
+
+  const response = await fetch(`https://${region}-run.googleapis.com/v2/projects/${project}/locations/${region}/jobs/${name}`, {
+    method: 'PATCH',
+    body: JSON.stringify(getJobPayload(gcsUrl)),
+    headers: getHeaders(token),
+  });
+  const status = await response.json();
+  if (status?.error) {
+    error(`Error updating job: ${status.error.message}`);
+    return;
+  }
+} 
+
+async function createOrUpdate(token, project, region, name, gcsUrl) {
+  log(`Creating or updating job ${name} in region ${region}...`);
+
+  const response = await create(token, project, region, name, gcsUrl);
+  const status = await response.json();
+
+  createLink(project, region, name);
+
+  // If error with 409 code and ALREADY_EXISTS status, then update the job instead.
+  if (status?.error?.code === 409 && status?.error?.status === 'ALREADY_EXISTS') {
+    log('Job already exists, updating instead.', 'DEBUG');
+    await update(token, project, region, name, gcsUrl);
+  } else if (status?.error) {
+    error(`Error creating job: ${status.error.message}`);
+    return;
   }
 
-  log(`Job is ready to execute`);
+  await checkJobReady(token, project, region, name);
 }
 
 async function execute(token, project, region, name) {
-  log(`Executing Cloud Run job ${name} in region ${region}...`);
-  const endpoint = `https://${region}-run.googleapis.com`;
+  log(`Executing Cloud Run job ${name} in region ${region}... (Open Cloud Console to see progress)`);
 
-  const response = await fetch(`${endpoint}/v2/projects/${project}/locations/${region}/jobs/${name}:run`, {
+  const response = await fetch(`https://${region}-run.googleapis.com/v2/projects/${project}/locations/${region}/jobs/${name}:run`, {
     method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      'Authorization': `Bearer ${token}`,
-    },
+    headers: getHeaders(token),
   });
+  const status = await response.json();
+  if (status?.error) {
+    error(`Error executing job: ${status.error.message}`);
+    return;
+  }
 
-  // TODO: check response status
-
-  log(`Job executed`);
-}
-
-function createLink(project, region, name) {
-  const link = document.createElement('a');
-  link.href = `https://console.cloud.google.com/run/jobs/details/${region}/${name}/executions?project=${project}`;
-  link.target = '_blank';
-  link.textContent = 'Open in Cloud Console';
-  document.getElementById('link').appendChild(link);
+  log(`Job executed (Open Cloud Console to see results)`);
 }
 
 function recordingTitleToJobName(title) {
@@ -190,11 +222,11 @@ async function main(recordingData) {
     localStorage.setItem(`${recording.title} - name`, params.name);
     localStorage.setItem(`${recording.title} - region`, params.region);
 
-    log(`Deploying recording ${recording.title} to Cloud Run job ${params.name} in region ${params.region} and project ${params.project}`);
+    log(`Deploying recording ${recording.title} to Cloud Run job ${params.name} in region ${params.region} and project ${params.project}:`);
 
     await enableAPIs(params.token, params.project);
     const gcsUrl = await upload(params.token, params.project, params.name, recording);
-    await create(params.token, params.project, params.region, params.name, gcsUrl);    
+    await createOrUpdate(params.token, params.project, params.region, params.name, gcsUrl);    
     await execute(params.token, params.project, params.region, params.name);
   };
 }
