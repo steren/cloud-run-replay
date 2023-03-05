@@ -25,6 +25,24 @@ function getFormData() {
   return Object.fromEntries(new FormData(document.querySelector('form')));
 }
 
+async function enableAPIs(token, project) {
+  log(`Enabling Cloud Storage and Cloud Run APIs...`);
+  const apis = [
+    'run.googleapis.com',
+    'storage.googleapis.com',
+  ];
+  for(const api of apis) {
+    await fetch(`https://serviceusage.googleapis.com/v1/projects/${project}/services/${api}:enable`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${token}`,
+      },
+    });
+  }
+  log(`Enabled`); 
+}
+
 async function upload(token, project, name, recording) {
   log(`Uploading to Google Cloud Storage...`);
   const bucketName = `${project}.appspot.com`;
@@ -173,6 +191,7 @@ async function main(recordingData) {
 
     log(`Deploying recording ${recording.title} to Cloud Run job ${params.name} in region ${params.region} and project ${params.project}`);
 
+    await enableAPIs(params.token, params.project);
     const gcsUrl = await upload(params.token, params.project, params.name, recording);
     await create(params.token, params.project, params.region, params.name, gcsUrl);    
     await execute(params.token, params.project, params.region, params.name);
