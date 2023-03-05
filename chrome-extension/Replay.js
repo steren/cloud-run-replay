@@ -6,6 +6,11 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
   main(request);
 });
 
+function mainStatus(status) {
+  console.log(status);
+  document.getElementById('status').textContent = status;
+}
+
 function log(message, severity) {
   console.log(message);
   if(severity !== 'DEBUG') {
@@ -222,7 +227,7 @@ async function main(recordingData) {
     localStorage.setItem(`${recording.title} - name`, params.name);
     localStorage.setItem(`${recording.title} - region`, params.region);
 
-    log(`Deploying recording ${recording.title} to Cloud Run job ${params.name} in region ${params.region} and project ${params.project}:`);
+    mainStatus(`Deploying recording ${recording.title} to Cloud Run job ${params.name} in region ${params.region} and project ${params.project}:`);
 
     await enableAPIs(params.token, params.project);
     const gcsUrl = await upload(params.token, params.project, params.name, recording);
