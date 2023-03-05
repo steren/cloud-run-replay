@@ -5,6 +5,22 @@
       /* In this example, we render long JSON strings which don't wrap automatically. Depending on your extension this should not be needed. */
       word-wrap: break-word;
     }
+
+    @media (prefers-color-scheme: dark) {
+      html {
+        /* Copy DevTools variables) */
+        --color-background-elevation-0 : rgb(32 32 35);
+        --color-text-primary: rgb(232 234 237);
+        --color-primary: rgb(138 180 248);
+
+        background-color: var(--color-background-elevation-0);
+        color: var(--color-text-primary);
+      }
+
+       a, a:visited {
+           color: var(--color-primary);
+       } 
+    } 
   </style>
 </head>
 <body>
