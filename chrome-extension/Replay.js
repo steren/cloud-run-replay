@@ -63,7 +63,7 @@ async function enableAPIs(token, project) {
 }
 
 async function upload(token, project, name, recording) {
-  log(`Uploading to Google Cloud Storage...`);
+  log(`Uploading replay...`);
   const bucketName = `${project}.appspot.com`;
   const timestamp = new Date().toISOString().replace(/[^0-9]/g, '');
   const filename = `chrome-recodrings/${name}/recording-${name}-${timestamp}.json`;
@@ -164,7 +164,7 @@ async function createOrUpdate(token, project, region, name, gcsUrl) {
 }
 
 async function execute(token, project, region, name) {
-  log(`Executing Cloud Run job ${name} in region ${region}... (Open Cloud Console to see progress)`);
+  log(`Executing...`);
 
   const response = await fetch(`https://${region}-run.googleapis.com/v2/projects/${project}/locations/${region}/jobs/${name}:run`, {
     method: 'POST',
