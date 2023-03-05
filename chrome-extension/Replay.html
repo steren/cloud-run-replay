@@ -24,9 +24,6 @@
   </style>
 </head>
 <body>
-  <p>
-    Run your Chrome DevTools Recordings on Google Cloud Run.
-  </p>
   <form>
     <fieldset>
       <legend>Cloud Run job settings:</legend>
@@ -76,9 +73,10 @@
     </fieldset>
     <fieldset>
       <legend>Authentication:</legend>
-      <label for="name">Token:</label> <input name="token" id="token" required>
-      <p>Get an Authentication token using either the <code>gcloud</code> command line or the OAuth Playground:</p>
-      <h3>Using the gcloud command line</h3>
+      <label for="name">Access token:</label> <input name="token" id="token" required>
+      <details>
+        <summary>Get an access token</summary>
+        <h3>Using the gcloud command line</h3>
       <p>In a terminal, run <code>gcloud auth print-access-token</code> and copy the printed token and paste it in the "Token" field in this panel.</p>
       <h3>Using the OAuth Playground</h3>
       <ol>
@@ -88,7 +86,7 @@
         <li>In <b>Step 1's results</b>, copy the value of the <b>Access token</b> field and paste it in the "Token" field in this panel</li>
       </ol>
       <p>Note: The copied access token is only valid for a short amount of time. You will need to repeat this operation.</p>
-      
+      </details>
     </fieldset>
     <input type="submit" value="Execute as a Cloud Run job">
   </form>
