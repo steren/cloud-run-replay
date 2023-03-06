@@ -47,6 +47,12 @@ function getHeaders(token) {
   };
 }
 
+function checkStatusForAuth(status) {
+  if (status?.error?.code === 401 && status?.error?.status === 'UNAUTHENTICATED') {
+    throw new Error(`Authentication error. Refresh the access token.`);
+  }
+}
+
 async function enableAPIs(token, project) {
   log(`Making sure Cloud Storage and Cloud Run APIs are enabled...`);
   const apis = [
@@ -54,10 +60,12 @@ async function enableAPIs(token, project) {
     'storage.googleapis.com',
   ];
   for(const api of apis) {
-    await fetch(`https://serviceusage.googleapis.com/v1/projects/${project}/services/${api}:enable`, {
+    const response = await fetch(`https://serviceusage.googleapis.com/v1/projects/${project}/services/${api}:enable`, {
       method: 'POST',
       headers: getHeaders(token),
     });
+    const status = await response.json();
+    checkStatusForAuth(status);
   }
   log(`Enabled`, 'DEBUG'); 
 }
@@ -72,6 +80,10 @@ async function upload(token, project, name, recording) {
     body: JSON.stringify(recording),
     headers: getHeaders(token),
   });
+  const status = await response.json();
+
+  checkStatusForAuth(status);
+
   log(`Uploaded`, 'DEBUG');
   return `gs://${bucketName}/${filename}`;
 }
@@ -139,7 +151,7 @@ async function update(token, project, region, name, gcsUrl) {
   const status = await response.json();
   if (status?.error) {
     error(`Error updating job: ${status.error.message}`);
-    return;
+    return false;
   }
 } 
 
@@ -151,13 +163,14 @@ async function createOrUpdate(token, project, region, name, gcsUrl) {
 
   createLink(project, region, name);
 
+  checkStatusForAuth(status);
+
   // If error with 409 code and ALREADY_EXISTS status, then update the job instead.
   if (status?.error?.code === 409 && status?.error?.status === 'ALREADY_EXISTS') {
     log('Job already exists, updating instead.', 'DEBUG');
     await update(token, project, region, name, gcsUrl);
   } else if (status?.error) {
-    error(`Error creating job: ${status.error.message}`);
-    return;
+    throw new Error(`Error creating job: ${status.error.message}`)
   }
 
   await checkJobReady(token, project, region, name);
@@ -170,10 +183,12 @@ async function execute(token, project, region, name) {
     method: 'POST',
     headers: getHeaders(token),
   });
+  
   const status = await response.json();
+  checkStatusForAuth(status);
+
   if (status?.error) {
-    error(`Error executing job: ${status.error.message}`);
-    return;
+    throw new Error(`Error executing job: ${status.error.message}`);
   }
 
   log(`Job executed (Open Cloud Console to see results)`);
@@ -229,9 +244,14 @@ async function main(recordingData) {
 
     mainStatus(`Deploying recording ${recording.title} to Cloud Run job ${params.name} in region ${params.region} and project ${params.project}:`);
 
-    await enableAPIs(params.token, params.project);
-    const gcsUrl = await upload(params.token, params.project, params.name, recording);
-    await createOrUpdate(params.token, params.project, params.region, params.name, gcsUrl);    
-    await execute(params.token, params.project, params.region, params.name);
+    try {
+      await enableAPIs(params.token, params.project);
+      const gcsUrl = await upload(params.token, params.project, params.name, recording);
+      await createOrUpdate(params.token, params.project, params.region, params.name, gcsUrl);    
+      await execute(params.token, params.project, params.region, params.name);
+    
+    } catch (e) {
+      error(e.message);
+    }
   };
 }
