@@ -1,7 +1,3 @@
-// URL of the pre-built replayer container.
-// TODO: update with a Google-managed container.
-const replayerImageURL = 'steren/chrome-replayer';
-
 chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
   main(request);
 });
@@ -88,7 +84,7 @@ async function upload(token, project, name, recording) {
   return `gs://${bucketName}/${filename}`;
 }
 
-function getJobPayload(gcsUrl) {
+function getJobPayload(image, gcsUrl) {
   return {
     labels: {
       'created-by': 'cloud-run-replay',
@@ -100,7 +96,7 @@ function getJobPayload(gcsUrl) {
       template: {
         containers: [
           {
-            image: replayerImageURL,
+            image,
             args: [
               gcsUrl
             ],
@@ -130,22 +126,22 @@ async function checkJobReady(token, project, region, name) {
   log(`Job is ready to execute`, 'DEBUG');
 }
 
-async function create(token, project, region, name, gcsUrl) {
+async function create(token, project, region, name, image, gcsUrl) {
   log(`Creating job ${name} in region ${region}...`, 'DEBUG');
 
   return fetch(`https://${region}-run.googleapis.com/v2/projects/${project}/locations/${region}/jobs?jobId=${name}`, {
     method: 'POST',
-    body: JSON.stringify(getJobPayload(gcsUrl)),
+    body: JSON.stringify(getJobPayload(image, gcsUrl)),
     headers: getHeaders(token),
   });
 }
 
-async function update(token, project, region, name, gcsUrl) {
+async function update(token, project, region, name, image, gcsUrl) {
   log(`Updating Cloud Run job ${name} in region ${region}...`, 'DEBUG');
 
   const response = await fetch(`https://${region}-run.googleapis.com/v2/projects/${project}/locations/${region}/jobs/${name}`, {
     method: 'PATCH',
-    body: JSON.stringify(getJobPayload(gcsUrl)),
+    body: JSON.stringify(getJobPayload(image, gcsUrl)),
     headers: getHeaders(token),
   });
   const status = await response.json();
@@ -155,10 +151,10 @@ async function update(token, project, region, name, gcsUrl) {
   }
 } 
 
-async function createOrUpdate(token, project, region, name, gcsUrl) {
+async function createOrUpdate(token, project, region, name, image, gcsUrl) {
   log(`Creating or updating job ${name} in region ${region}...`);
 
-  const response = await create(token, project, region, name, gcsUrl);
+  const response = await create(token, project, region, name, image, gcsUrl);
   const status = await response.json();
 
   createLink(project, region, name);
@@ -168,7 +164,7 @@ async function createOrUpdate(token, project, region, name, gcsUrl) {
   // If error with 409 code and ALREADY_EXISTS status, then update the job instead.
   if (status?.error?.code === 409 && status?.error?.status === 'ALREADY_EXISTS') {
     log('Job already exists, updating instead.', 'DEBUG');
-    await update(token, project, region, name, gcsUrl);
+    await update(token, project, region, name, image, gcsUrl);
   } else if (status?.error) {
     throw new Error(`Error creating job: ${status.error.message}`)
   }
@@ -247,7 +243,7 @@ async function main(recordingData) {
     try {
       await enableAPIs(params.token, params.project);
       const gcsUrl = await upload(params.token, params.project, params.name, recording);
-      await createOrUpdate(params.token, params.project, params.region, params.name, gcsUrl);    
+      await createOrUpdate(params.token, params.project, params.region, params.name, params.image, gcsUrl);    
       await execute(params.token, params.project, params.region, params.name);
     
     } catch (e) {
