@@ -6,6 +6,37 @@
       word-wrap: break-word;
     }
 
+    label {
+      display: inline-block;
+      width: 200px;
+    }
+
+    fieldset {
+      border-style: none;
+      margin-inline-start: 0;
+      margin-inline-end: 0;
+      padding-block-start: 0;
+      padding-inline-start: 0;
+      padding-inline-end: 0;
+      padding-block-end: 0;
+    }
+
+    legend {
+      display: block;
+      font-size: 1.17em;
+      font-weight: bold;
+      padding-inline-start: 0;
+      padding-inline-end: 0;
+    }
+
+    form {
+      width: 50%;
+    }
+
+    input[type="submit"] {
+      margin-top: 1em;
+    }
+
     @media (prefers-color-scheme: dark) {
       html {
         /* Copy DevTools variables) */
@@ -25,8 +56,9 @@
 </head>
 <body>
   <form>
+
     <fieldset>
-      <legend>Cloud Run job settings:</legend>
+      <legend>Cloud Run job settings</legend>
       <label for="project">Google Cloud project ID:</label> <input name="project" id="project" placeholder="my-gcp-project" required><br/>
       <label for="region">Region:</label>
       <select name="region" id="region" required>
@@ -71,8 +103,9 @@
       </select><br/>
       <label for="name">Job name:</label> <input name="name" id="name" value="replay" placeholder="replay"><br/>
     </fieldset>
+ 
     <fieldset>
-      <legend>Authentication:</legend>
+      <legend>Authentication</legend>
       <label for="name">Access token:</label> <input name="token" id="token" placeholder="ya29.abcde1234...." required>
       <details>
         <summary>Get an access token</summary>
@@ -88,10 +121,20 @@
       <p>Note: The copied access token is only valid for a short amount of time. You will need to repeat this operation.</p>
       </details>
     </fieldset>
+
+    <!-- <details>
+      <summary>Advanced settings</summary>
+      <fieldset>
+        <label for="image">Replayer container image:</label> <input name="image" id="image" value="steren/chrome-replayer" placeholder="repo/image:tag"><br/>
+        <label for="bucket">Cloud Storage bucket name:</label> <input name="bucket" id="bucket" placeholder="my-bucket"> <span>(leave empty for default)</span> <br/>
+      </fieldset>
+    </details> -->
+
     <input type="submit" value="Execute as a Cloud Run job">
   </form>
 
   <p id="status"></p>
+  <!-- <progress id="progress"></progress><br/> -->
   <ol id="log"></ol>
   
   <p id="link"></p>
