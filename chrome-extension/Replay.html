@@ -53,10 +53,13 @@
        } 
     } 
   </style>
+
 </head>
 <body>
-  <form>
 
+  <button id="login">Authorize me</button>
+
+  <form>
     <fieldset>
       <legend>Cloud Run job settings</legend>
       <label for="project">Google Cloud project ID:</label> <input name="project" id="project" placeholder="my-gcp-project" required><br/>
@@ -109,16 +112,21 @@
       <label for="name">Access token:</label> <input name="token" id="token" placeholder="ya29.abcde1234...." required>
       <details>
         <summary>Get an access token</summary>
+
+        <h3>Clicking the "Authorize me" button above.</h3>
+        <p>Click the button above and grant access in the consent window.</p>
+        
         <h3>Using the gcloud command line</h3>
-      <p>In a terminal, run <code>gcloud auth print-access-token</code> and copy the printed token and paste it in the "Token" field in this panel.</p>
-      <h3>Using the OAuth Playground</h3>
-      <ol>
-        <li><a href="https://developers.google.com/oauthplayground/#step1&scopes=https%3A%2F%2Fwww.googleapis.com%2Fauth%2Fcloud-platform&url=https%3A%2F%2F&content_type=application%2Fjson&http_method=GET&useDefaultOauthCred=unchecked&oauthEndpointSelect=Google&oauthAuthEndpointValue=https%3A%2F%2Faccounts.google.com%2Fo%2Foauth2%2Fv2%2Fauth&oauthTokenEndpointValue=https%3A%2F%2Foauth2.googleapis.com%2Ftoken&includeCredentials=unchecked&accessTokenType=bearer&autoRefreshToken=unchecked&accessType=offline&prompt=consent&response_type=token&wrapLines=on" target="_blank">Open the OAuth 2.0 Playground</a></li>
-        <li>In <b>Step 1</b>, click "<b>Authorize APIs</b>"</li>
-        <li>Sign in to your Google account when prompted and click "Allow"</li>
-        <li>In <b>Step 1's results</b>, copy the value of the <b>Access token</b> field and paste it in the "Token" field in this panel</li>
-      </ol>
-      <p>Note: The copied access token is only valid for a short amount of time. You will need to repeat this operation.</p>
+        <p>In a terminal, run <code>gcloud auth print-access-token</code> and copy the printed token and paste it in the "Token" field in this panel.</p>
+        
+        <h3>Using the OAuth Playground</h3>
+        <ol>
+          <li><a href="https://developers.google.com/oauthplayground/#step1&scopes=https%3A%2F%2Fwww.googleapis.com%2Fauth%2Fcloud-platform&url=https%3A%2F%2F&content_type=application%2Fjson&http_method=GET&useDefaultOauthCred=unchecked&oauthEndpointSelect=Google&oauthAuthEndpointValue=https%3A%2F%2Faccounts.google.com%2Fo%2Foauth2%2Fv2%2Fauth&oauthTokenEndpointValue=https%3A%2F%2Foauth2.googleapis.com%2Ftoken&includeCredentials=unchecked&accessTokenType=bearer&autoRefreshToken=unchecked&accessType=offline&prompt=consent&response_type=token&wrapLines=on" target="_blank">Open the OAuth 2.0 Playground</a></li>
+          <li>In <b>Step 1</b>, click "<b>Authorize APIs</b>"</li>
+          <li>Sign in to your Google account when prompted and click "Allow"</li>
+          <li>In <b>Step 1's results</b>, copy the value of the <b>Access token</b> field and paste it in the "Token" field in this panel</li>
+        </ol>
+        <p>Note: The copied access token is only valid for a short amount of time. You will need to repeat this operation.</p>
       </details>
     </fieldset>
 

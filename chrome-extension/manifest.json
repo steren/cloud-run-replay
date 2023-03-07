@@ -1,12 +1,21 @@
 {
   "manifest_version": 3,
   "version": "0.1.0",
-  "name": "CoffeeTestExtension",
-  "description": "DevTools extension showing how to extend the replay functionality of the Recorder panel in Chrome DevTools.",
-  "permissions": [],
+  "name": "CloudRunReplayer",
+  "description": "DevTools extension to run Chrome DevTools recordings on Cloud Run.",
+  "permissions": [
+    "identity"
+  ],
   "devtools_page": "DevToolsPlugin.html",
   "content_security_policy": {
     "extension_pages": "script-src 'self'; object-src 'self'"
   },
-  "minimum_chrome_version": "112.0.5569.0"
+  "key": "MIGfMA0GCSqGSIb3DQEBAQUAA4GNADCBiQKBgQCrKfMnLqViEyokd1wk57FxJtW2XXpGXzIHBzv9vQI/01UsuP0IV5/lj0wx7zJ/xcibUgDeIxobvv9XD+zO1MdjMWuqJFcKuSS4Suqkje6u+pMrTSGOSHq1bmBVh0kpToN8YoJs/P/yrRd7FEtAXTaFTGxQL4C385MeXSjaQfiRiQIDAQAB",
+  "minimum_chrome_version": "112.0.5569.0",
+  "oauth2": {
+    "client_id": "607903476290-fjdogh8hm323g7hsi7pf3l5gpu9b8s2u.apps.googleusercontent.com",
+    "scopes": [
+      "https://www.googleapis.com/auth/cloud-platform"
+    ]
+  }
 }

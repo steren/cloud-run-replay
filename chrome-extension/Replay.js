@@ -222,6 +222,14 @@ async function main(recordingData) {
     return;
   }
 
+  document.getElementById('login').onclick = () => {
+    chrome.identity.getAuthToken({ 'interactive': true }, function(token) {
+      console.log(`Got OAuth token: ${token}`);
+      localStorage.setItem('token', token);
+      document.querySelector('#token').value = token;
+    });
+  };
+
   loadFormDataFromLocalStorage(recording);
 
   document.querySelector('form').onsubmit = async (event) => {
