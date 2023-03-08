@@ -214,6 +214,19 @@ function loadFormDataFromLocalStorage(recording) {
   }
 }
 
+async function doTheCloudThing(token, recording, params) {
+  mainStatus(`Deploying recording ${recording.title} to Cloud Run job ${params.name} in region ${params.region} and project ${params.project}:`);
+
+  try {
+    await enableAPIs(token, params.project);
+    const gcsUrl = await upload(token, params.project, params.name, recording);
+    await createOrUpdate(token, params.project, params.region, params.name, params.image, gcsUrl);    
+    await execute(token, params.project, params.region, params.name);
+  
+  } catch (e) {
+    error(e.message);
+  }
+}
 
 async function main(recordingData) {
   const recording = JSON.parse(recordingData);
@@ -221,14 +234,6 @@ async function main(recordingData) {
     error('No recording passed');
     return;
   }
-
-  document.getElementById('login').onclick = () => {
-    chrome.identity.getAuthToken({ 'interactive': true }, function(token) {
-      console.log(`Got OAuth token: ${token}`);
-      localStorage.setItem('token', token);
-      document.querySelector('#token').value = token;
-    });
-  };
 
   loadFormDataFromLocalStorage(recording);
 
@@ -246,16 +251,20 @@ async function main(recordingData) {
     localStorage.setItem(`${recording.title} - name`, params.name);
     localStorage.setItem(`${recording.title} - region`, params.region);
 
-    mainStatus(`Deploying recording ${recording.title} to Cloud Run job ${params.name} in region ${params.region} and project ${params.project}:`);
 
-    try {
-      await enableAPIs(params.token, params.project);
-      const gcsUrl = await upload(params.token, params.project, params.name, recording);
-      await createOrUpdate(params.token, params.project, params.region, params.name, params.image, gcsUrl);    
-      await execute(params.token, params.project, params.region, params.name);
-    
-    } catch (e) {
-      error(e.message);
+    if(!params.token) {
+      log('Granting access...');
+      chrome.identity.getAuthToken({ 'interactive': true }, function(token) {
+        if(token) {
+          log(`Got OAuth token from Chrome`, 'DEBUG');
+          doTheCloudThing(token, recording, params);
+        } else {
+          error('Could not get OAuth token from Chrome, try opening "Advanced Settings" and follow instructions to paste an access token.');
+        }
+      });
+    } else {
+      log(`Got OAuth token from Advanced Settings`, 'DEBUG');
+      doTheCloudThing(params.token, recording, params);
     }
   };
 }
